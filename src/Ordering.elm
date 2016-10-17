@@ -8,6 +8,9 @@ module Ordering
         , breakTiesWith
         , explicit
         , reverse
+        , isOrdered
+        , greaterThanBy
+        , lessThanBy
         )
 
 {-| Library for building comparison functions.
@@ -43,6 +46,9 @@ smaller comparison functions. For instance, suppose you are defining a deck of c
 
 # Composition
 @docs breakTiesWith, reverse
+
+# Utility
+@docs isOrdered, greaterThanBy, lessThanBy
 -}
 
 
@@ -59,7 +65,7 @@ pass an ordering to `List.sortWith` directly:
     myOrdering : Ordering Point
     myOrdering =
         Ordering.byField .x
-            |> Ordering.breakTiesWith (Ordering.byField y)
+            |> Ordering.breakTiesWith (Ordering.byField .y)
 
     List.sortWith myOrdering [Point 1 2, Point 2 3]
 -}
@@ -218,3 +224,59 @@ reverse ordering x y =
 
         GT ->
             LT
+
+
+{-| Determines if the given list is ordered according to the given ordering.
+
+    Ordering.isOrdered Ordering.natural [1, 2, 3] == True
+    Ordering.isOrdered Ordering.natural [2, 1, 3] == False
+    Ordering.isOrdered Ordering.natural [] == True
+    Ordering.isOrdered (Ordering.reverse Ordering.natural) [1, 2, 3] == False
+-}
+isOrdered : Ordering a -> List a -> Bool
+isOrdered ordering items =
+    case items of
+        x :: ((y :: _) as rest) ->
+            case ordering x y of
+                LT ->
+                    isOrdered ordering rest
+
+                EQ ->
+                    isOrdered ordering rest
+
+                GT ->
+                    False
+
+        -- lists of one or zero elements are always ordered
+        _ ->
+            True
+
+
+{-| Determines if one value is less than another according to the given ordering.
+
+    lessThanBy xThenYOrdering { x = 7, y = 8 } { x = 10, y = 2 } == True
+    lessThanBy yThenXOrdering { x = 7, y = 8 } { x = 10, y = 2 } == False
+-}
+lessThanBy : Ordering a -> a -> a -> Bool
+lessThanBy ordering x y =
+    case ordering x y of
+        LT ->
+            True
+
+        _ ->
+            False
+
+
+{-| Determines if one value is greater than another according to the given ordering.
+
+    greaterThanBy xThenYOrdering { x = 7, y = 8 } { x = 10, y = 2 } == False
+    greaterThanBy yThenXOrdering { x = 7, y = 8 } { x = 10, y = 2 } == True
+-}
+greaterThanBy : Ordering a -> a -> a -> Bool
+greaterThanBy ordering x y =
+    case ordering x y of
+        GT ->
+            True
+
+        _ ->
+            False
