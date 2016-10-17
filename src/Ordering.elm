@@ -2,10 +2,12 @@ module Ordering
     exposing
         ( Ordering
         , natural
+        , byToString
         , byFieldWith
         , byField
         , breakTiesWith
         , explicit
+        , reverse
         )
 
 {-| Library for building comparison functions.
@@ -44,13 +46,34 @@ smaller comparison functions. For instance, suppose you are defining a deck of c
 -}
 
 
-{-| A function that compares two values and returns whether the first is less than, equal to, or greater than the second.
+{-| A function that compares two values and returns whether
+the first is less than, equal to, or greater than the second.
+
+Though the type alias is provided by this library, its
+definition is chosen to be compatible with existing Elm functions
+that accept ordering functions. So, for instance, you can
+pass an ordering to `List.sortWith` directly:
+
+    type alias Point = { x : Int, y : Int }
+
+    myOrdering : Ordering Point
+    myOrdering =
+        Ordering.byField .x
+            |> Ordering.breakTiesWith (Ordering.byField y)
+
+    List.sortWith myOrdering [Point 1 2, Point 2 3]
 -}
 type alias Ordering a =
     a -> a -> Order
 
 
 {-| Ordering that works with any built-in comparable type.
+
+    intOrdering : Ordering Int
+    intOrdering = natural  -- orders in numeric order: 1, 2, 3, ...
+
+    stringOrdering : Ordering String
+    stringOrdering : natural  -- orders lexicographically: "a", "ab", "b", ...
 -}
 natural : Ordering comparable
 natural =
@@ -80,6 +103,12 @@ byToString =
 {-| Creates an ordering that orders items in the order given in the input list.
 Items that are not part of the input list are all considered to be equal to each
 other and less than anything in the list.
+
+    type Day = Mon | Tue | Wed | Thu | Fri | Sat | Sun
+
+    dayOrdering : Ordering Day
+    dayOrdering =
+        Ordering.explicit [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
 -}
 explicit : List a -> Ordering a
 explicit items x y =
