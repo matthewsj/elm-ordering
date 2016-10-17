@@ -16,24 +16,41 @@ module Ordering
 {-| Library for building comparison functions.
 
 This library makes it easy to create comparison functions for arbitary types by composing
-smaller comparison functions. For instance, suppose you are defining a deck of cards:
-
-    import Ordering exposing (Ordering)
+smaller comparison functions. For instance, suppose you are defining a data type to represent
+a standard deck of cards. You might define it as:
 
     type alias Card = { value : Value, suite : Suite }
     type Suite = Clubs | Hearts | Diamonds | Spades
-    type Value = Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King | Ace
+    type Value = Two | Three | Four | Five | Six | Seven
+               | Eight | Nine | Ten | Jack | Queen | King | Ace
 
-    suiteOrdering : Ordering Suite
-    suiteOrdering = Ordering.explicit [Clubs, Hearts, Diamonds, Spades]
+With this representation, you could define an ordering for `Card` values compositionally:
 
-    valueOrdering : Ordering Value
-    valueOrdering = Ordering.explicit [Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace]
+    import Ordering exposing (Ordering)
+
 
     cardOrdering : Ordering Card
     cardOrdering =
         Ordering.byFieldWith suiteOrdering .suite
-            |> Ordering.breakTiesWith (Ordering.byFieldWith valueOrdering .value)
+            |> Ordering.breakTiesWith
+                   (Ordering.byFieldWith valueOrdering .value)
+
+
+    suiteOrdering : Ordering Suite
+    suiteOrdering =
+        Ordering.explicit [Clubs, Hearts, Diamonds, Spades]
+
+
+    valueOrdering : Ordering Value
+    valueOrdering =
+        Ordering.explicit
+            [ Two , Three , Four , Five , Six , Seven
+            , Eight, Nine, Ten, Jack, Queen, King, Ace
+            ]
+
+
+You can then use this ordering to sort cards, make comparisons, and so on. For instance,
+to sort a deck of cards you can use `cardOrdering` directly:
 
     sortCards : List Card -> List Card
     sortCards = List.sortWith cardOrdering
@@ -75,11 +92,14 @@ type alias Ordering a =
 
 {-| Ordering that works with any built-in comparable type.
 
+    -- orders in numeric order: 1, 2, 3, ...
     intOrdering : Ordering Int
-    intOrdering = natural  -- orders in numeric order: 1, 2, 3, ...
+    intOrdering = natural
 
+
+    -- orders lexicographically: "a", "ab", "b", ...
     stringOrdering : Ordering String
-    stringOrdering : natural  -- orders lexicographically: "a", "ab", "b", ...
+    stringOrdering : natural
 -}
 natural : Ordering comparable
 natural =
@@ -114,7 +134,8 @@ other and less than anything in the list.
 
     dayOrdering : Ordering Day
     dayOrdering =
-        Ordering.explicit [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+        Ordering.explicit
+            [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
 -}
 explicit : List a -> Ordering a
 explicit items x y =
@@ -162,8 +183,10 @@ field selected by the given function.
 
     type alias Point = { x : Int, y : Int }
 
-    List.sort (Ordering.byField .x) [Point 3 5, Point 1 6] == [Point 1 6, Point 3 5]
-    List.sort (Ordering.byField .y) [Point 3 5, Point 1 6] == [Point 3 5, Point 1 6]
+    List.sort (Ordering.byField .x) [Point 3 5, Point 1 6]
+        == [Point 1 6, Point 3 5]
+    List.sort (Ordering.byField .y) [Point 3 5, Point 1 6]
+        == [Point 3 5, Point 1 6]
 -}
 byField : (a -> comparable) -> Ordering a
 byField =
@@ -173,11 +196,23 @@ byField =
 {-| Produces an ordering that orders its elements using the given ordering on the
 field selected by the given function.
 
-    cards = [ { value = Two, suite = Spades}, {value = King, suite = Hearts} ]
-    List.sort (Ordering.byFieldWith valueOrdering .value) cards
-        == [ { value = Two, suite = Spades}, {value = King, suite = Hearts} ]
-    List.sort (Ordering.byFieldWith suiteOrdering .suite) cards
-        == [ {value = King, suite = Hearts}, { value = Two, suite = Spades} ]
+    cards =
+        [ { value = Two, suite = Spades }
+        , { value = King, suite = Hearts }
+        ]
+
+    List.sort
+        (Ordering.byFieldWith valueOrdering .value)
+        cards
+        == [ { value = Two, suite = Spades }
+           , { value = King, suite = Hearts }
+           ]
+    List.sort
+        (Ordering.byFieldWith suiteOrdering .suite)
+        cards
+        == [ { value = King, suite = Hearts }
+           , { value = Two, suite = Spades }
+           ]
 -}
 byFieldWith : Ordering b -> (a -> b) -> Ordering a
 byFieldWith compareField extractField x y =
@@ -211,7 +246,10 @@ breakTiesWith tiebreaker mainOrdering x y =
 
 {-| Returns an ordering that reverses the input ordering.
 
-    List.sortWith (Ordering.reverse Ordering.natural) [1, 2, 3, 4, 5] == [5, 4, 3, 2, 1]
+    List.sortWith
+        (Ordering.reverse Ordering.natural)
+        [1, 2, 3, 4, 5]
+        == [5, 4, 3, 2, 1]
 -}
 reverse : Ordering a -> Ordering a
 reverse ordering x y =
@@ -228,10 +266,16 @@ reverse ordering x y =
 
 {-| Determines if the given list is ordered according to the given ordering.
 
-    Ordering.isOrdered Ordering.natural [1, 2, 3] == True
-    Ordering.isOrdered Ordering.natural [2, 1, 3] == False
-    Ordering.isOrdered Ordering.natural [] == True
-    Ordering.isOrdered (Ordering.reverse Ordering.natural) [1, 2, 3] == False
+    Ordering.isOrdered Ordering.natural [1, 2, 3]
+        == True
+    Ordering.isOrdered Ordering.natural [2, 1, 3]
+        == False
+    Ordering.isOrdered Ordering.natural []
+        == True
+    Ordering.isOrdered
+        (Ordering.reverse Ordering.natural)
+        [1, 2, 3]
+        == False
 -}
 isOrdered : Ordering a -> List a -> Bool
 isOrdered ordering items =
@@ -254,8 +298,17 @@ isOrdered ordering items =
 
 {-| Determines if one value is less than another according to the given ordering.
 
-    lessThanBy xThenYOrdering { x = 7, y = 8 } { x = 10, y = 2 } == True
-    lessThanBy yThenXOrdering { x = 7, y = 8 } { x = 10, y = 2 } == False
+    lessThanBy
+        xThenYOrdering
+        { x = 7, y = 8 }
+        { x = 10, y = 2 }
+        == True
+
+    lessThanBy
+        yThenXOrdering
+        { x = 7, y = 8 }
+        { x = 10, y = 2 }
+        == False
 -}
 lessThanBy : Ordering a -> a -> a -> Bool
 lessThanBy ordering x y =
@@ -269,8 +322,17 @@ lessThanBy ordering x y =
 
 {-| Determines if one value is greater than another according to the given ordering.
 
-    greaterThanBy xThenYOrdering { x = 7, y = 8 } { x = 10, y = 2 } == False
-    greaterThanBy yThenXOrdering { x = 7, y = 8 } { x = 10, y = 2 } == True
+    greaterThanBy
+        xThenYOrdering
+        { x = 7, y = 8 }
+        { x = 10, y = 2 }
+        == False
+
+    greaterThanBy
+        yThenXOrdering
+        { x = 7, y = 8 }
+        { x = 10, y = 2 }
+        == True
 -}
 greaterThanBy : Ordering a -> a -> a -> Bool
 greaterThanBy ordering x y =
