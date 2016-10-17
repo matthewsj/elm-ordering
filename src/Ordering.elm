@@ -37,10 +37,10 @@ smaller comparison functions. For instance, suppose you are defining a deck of c
 @docs Ordering
 
 # Construction
-@docs natural, explicit, byField, byFieldWith
+@docs natural, byToString, explicit, byField, byFieldWith
 
 # Composition
-@docs breakTiesWith
+@docs breakTiesWith, reverse
 -}
 
 
@@ -65,6 +65,16 @@ fromLessThan lt x y =
         GT
     else
         EQ
+
+
+{-| Ordering that orders values lexicographically by their string representation.
+This ordering can be useful for prototyping but it's usually better to replace it
+with a hand-made ordering for serious use since `byToString` gives no way of tuning
+the resulting ordering.
+-}
+byToString : Ordering a
+byToString =
+    byField toString
 
 
 {-| Creates an ordering that orders items in the order given in the input list.
@@ -162,3 +172,20 @@ breakTiesWith tiebreaker mainOrdering x y =
 
         EQ ->
             tiebreaker x y
+
+
+{-| Returns an ordering that reverses the input ordering.
+
+    List.sortWith (Ordering.reverse Ordering.natural) [1, 2, 3, 4, 5] == [5, 4, 3, 2, 1]
+-}
+reverse : Ordering a -> Ordering a
+reverse ordering x y =
+    case ordering x y of
+        LT ->
+            GT
+
+        EQ ->
+            EQ
+
+        GT ->
+            LT
