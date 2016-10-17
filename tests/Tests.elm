@@ -201,6 +201,18 @@ all =
                     in
                         Expect.equal orderedXCoords xCoordsOfOrderedPoints
             ]
+        , describe "Reverse"
+            [ fuzz (Fuzz.list point) "Reversing the result of reverse sort is the same as the forward sort" <|
+                \points ->
+                    let
+                        sortedPoints =
+                            List.sortWith pointOrdering points
+
+                        reverseSortedPoints =
+                            List.sortWith (Ordering.reverse pointOrdering) points
+                    in
+                        Expect.equal (List.reverse sortedPoints) reverseSortedPoints
+            ]
         , describe "Overall sorting tests with cards"
             [ test "Cards are ordered" <|
                 \_ ->
