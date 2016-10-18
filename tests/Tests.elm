@@ -1,6 +1,7 @@
 module Tests exposing (..)
 
 import Test exposing (..)
+import Dict exposing (Dict)
 import Expect
 import Fuzz exposing (Fuzzer)
 import Ordering exposing (Ordering)
@@ -111,6 +112,30 @@ expectNotOrdered ordering list =
         |> Expect.false "Expected list to be out of order"
 
 
+categorize : (a -> comparable) -> List a -> List (List a)
+categorize categorizer items =
+    List.foldl
+        (\item dict ->
+            let
+                category =
+                    categorizer item
+            in
+                Dict.update category
+                    (\v ->
+                        case v of
+                            Just oldElements ->
+                                Just (oldElements ++ [ item ])
+
+                            Nothing ->
+                                Just [ item ]
+                    )
+                    dict
+        )
+        Dict.empty
+        items
+        |> Dict.values
+
+
 all : Test
 all =
     describe "Ordering"
@@ -182,10 +207,10 @@ all =
                 excludedValue =
                     oneOf excludedValues
               in
-                fuzz (Fuzz.tuple ( includedValue, excludedValue ))
+                fuzz2 includedValue excludedValue
                     "explicit ordering sorts unlisted items as less than"
                 <|
-                    \( included, excluded ) ->
+                    \included excluded ->
                         Ordering.lessThanBy partialValueOrdering excluded included
                             |> Expect.true "Expected excluded value from partial ordering to be less than included"
             ]
@@ -218,6 +243,52 @@ all =
                             List.sortWith (Ordering.reverse pointOrdering) points
                     in
                         Expect.equal (List.reverse sortedPoints) reverseSortedPoints
+            ]
+        , describe "breakTiesWith"
+            [ fuzzWith { runs = 1000 }
+                  (Fuzz.list (Fuzz.tuple3 ( Fuzz.int, Fuzz.int, Fuzz.int )))
+                  "Breaking ties three ways works" <|
+                \triples ->
+                    let
+                        fst ( x, _, _ ) =
+                            x
+
+                        snd ( _, y, _ ) =
+                            y
+
+                        thd ( _, _, z ) =
+                            z
+
+                        sorted =
+                            List.sortWith
+                                (Ordering.byField fst
+                                    |> Ordering.breakTiesWith (Ordering.byField snd)
+                                    |> Ordering.breakTiesWith (Ordering.byField thd)
+                                )
+                                triples
+
+                        firstsSorted =
+                            Ordering.isOrdered Ordering.natural (List.map fst sorted)
+
+                        categorizedByFirst =
+                            categorize fst sorted
+
+                        secondsSorted =
+                            List.map (\triples -> Ordering.isOrdered Ordering.natural (List.map snd triples))
+                                categorizedByFirst
+
+                        categorizedByFirstAndSecond =
+                            categorize (\( x, y, _ ) -> ( x, y )) sorted
+
+                        thirdsSorted =
+                            List.map (\triples -> Ordering.isOrdered Ordering.natural (List.map thd triples))
+                                categorizedByFirstAndSecond
+                    in
+                        Expect.true "Something wasn't sorted"
+                            (firstsSorted
+                                && List.all (\x -> x) secondsSorted
+                                && List.all (\x -> x) thirdsSorted
+                            )
             ]
         , describe "Overall sorting tests with cards"
             [ test "Cards are ordered" <|
