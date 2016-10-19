@@ -191,6 +191,15 @@ all =
         , describe "explicit"
             [ test "ordered" <|
                 \_ -> expectOrdered suiteOrdering [ Clubs, Hearts, Diamonds, Spades ]
+            , test "equal" <|
+                \_ -> suiteOrdering Hearts Hearts
+                         |> Expect.equal EQ
+            , test "less than" <|
+                \_ -> suiteOrdering Hearts Spades
+                      |> Expect.equal LT
+            , test "greater than" <|
+                \_ -> suiteOrdering Diamonds Clubs
+                      |> Expect.equal GT
             , let
                 orderedValues =
                     [ Three, Four, Five, Six, Seven, Eight, Nine, Ten ]

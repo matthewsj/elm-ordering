@@ -175,7 +175,10 @@ explicit items x y =
                 [] ->
                     GT
     in
-        scanForEither items
+        if x == y then
+            EQ
+        else
+            scanForEither items
 
 
 {-| Produces an ordering that orders its elements using the natural ordering of the
