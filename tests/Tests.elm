@@ -34,6 +34,11 @@ type Value
     | Ace
 
 
+type JokerCard
+    = NormalCard Value Suite
+    | Joker
+
+
 suiteOrdering : Ordering Suite
 suiteOrdering =
     Ordering.explicit [ Clubs, Hearts, Diamonds, Spades ]
@@ -192,14 +197,17 @@ all =
             [ test "ordered" <|
                 \_ -> expectOrdered suiteOrdering [ Clubs, Hearts, Diamonds, Spades ]
             , test "equal" <|
-                \_ -> suiteOrdering Hearts Hearts
-                         |> Expect.equal EQ
+                \_ ->
+                    suiteOrdering Hearts Hearts
+                        |> Expect.equal EQ
             , test "less than" <|
-                \_ -> suiteOrdering Hearts Spades
-                      |> Expect.equal LT
+                \_ ->
+                    suiteOrdering Hearts Spades
+                        |> Expect.equal LT
             , test "greater than" <|
-                \_ -> suiteOrdering Diamonds Clubs
-                      |> Expect.equal GT
+                \_ ->
+                    suiteOrdering Diamonds Clubs
+                        |> Expect.equal GT
             , let
                 orderedValues =
                     [ Three, Four, Five, Six, Seven, Eight, Nine, Ten ]
@@ -216,7 +224,8 @@ all =
                 excludedValue =
                     oneOf excludedValues
               in
-                fuzz2 includedValue excludedValue
+                fuzz2 includedValue
+                    excludedValue
                     "explicit ordering sorts unlisted items as less than"
                 <|
                     \included excluded ->
@@ -255,8 +264,9 @@ all =
             ]
         , describe "breakTiesWith"
             [ fuzzWith { runs = 1000 }
-                  (Fuzz.list (Fuzz.tuple3 ( Fuzz.int, Fuzz.int, Fuzz.int )))
-                  "Breaking ties three ways works" <|
+                (Fuzz.list (Fuzz.tuple3 ( Fuzz.int, Fuzz.int, Fuzz.int )))
+                "Breaking ties three ways works"
+              <|
                 \triples ->
                     let
                         fst ( x, _, _ ) =
@@ -299,6 +309,33 @@ all =
                                 && List.all (\x -> x) thirdsSorted
                             )
             ]
+        , describe "byRank" <|
+            let
+                jokerCardOrdering =
+                    Ordering.byRank
+                        (\card ->
+                            case card of
+                                NormalCard _ _ ->
+                                    1
+
+                                Joker ->
+                                    2
+                        )
+                        (\x y ->
+                            case ( x, y ) of
+                                ( NormalCard v1 s1, NormalCard v2 s2 ) ->
+                                    suiteOrdering s1 s2
+                                        |> Ordering.ifStillTiedThen (valueOrdering v1 v2)
+
+                                _ ->
+                                    Ordering.noConflicts
+                        )
+            in
+                [ test "Orders jokers first" <|
+                    \_ ->
+                        List.sortWith jokerCardOrdering [ NormalCard Three Spades, Joker, NormalCard Five Clubs, Joker ]
+                            |> Expect.equal [ NormalCard Five Clubs, NormalCard Three Spades, Joker, Joker ]
+                ]
         , describe "Overall sorting tests with cards"
             [ test "Cards are ordered" <|
                 \_ ->

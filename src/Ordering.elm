@@ -5,12 +5,15 @@ module Ordering
         , byToString
         , byFieldWith
         , byField
+        , byRank
+        , noConflicts
         , breakTiesWith
         , explicit
         , reverse
         , isOrdered
         , greaterThanBy
         , lessThanBy
+        , ifStillTiedThen
         )
 
 {-| Library for building comparison functions.
@@ -59,7 +62,7 @@ to sort a deck of cards you can use `cardOrdering` directly:
 @docs Ordering
 
 # Construction
-@docs natural, byToString, explicit, byField, byFieldWith
+@docs natural, byToString, explicit, byField, byFieldWith, byRank, noConflicts, ifStillTiedThen
 
 # Composition
 @docs breakTiesWith, reverse
@@ -245,6 +248,74 @@ breakTiesWith tiebreaker mainOrdering x y =
 
         EQ ->
             tiebreaker x y
+
+
+{-| Produces an ordering defined by an explicit ranking function combined with a
+secondary ordering function to compare elements within the same rank. The rule is
+that all items are sorted first by rank, and then using the given within-rank
+ordering for items of the same rank.
+
+This function is intended for use with types that have multiple cases where
+constructors for some or all of the cases take arguments. (Otherwise use `Ordering.explicit`
+instead which has a simpler interface.) For instance, to make an ordering for
+a type such as:
+
+    type JokerCard = NormalCard Value Suite | Joker
+
+you could use `byRank` to sort all the normal cards before the jokers like so:
+
+    jokerCardOrdering : Ordering JokerCard
+    jokerCardOrdering =
+        Ordering.byRank
+            (card ->
+                 case card of
+                     NormalCard _ _ -> 1
+                     Joker -> 2)
+            (x y ->
+                 case (x, y) of
+                     (NormalCard v1 s1, NormalCard v2 s2) ->
+                         suiteOrdering s1 s2
+                             |> Ordering.ifStillTiedThen
+                                    (valueOrdering v1 v2)
+                     _ -> Ordering.noConflicts)
+
+More generally, the expected pattern is that for each case in your type, you assign
+that case to a unique rank with the ranking function. Then for your within-rank
+ordering, you have a case statement that enumerates all the "tie" states and
+specifies how to break ties, and then uses a catch-all case that returns
+`Ordering.noConflicts` to specify that all remaining cases cannot give rise to
+the need to do any subcomparisons. (This can be either because the values being
+compared have no internal structure and so are always equal, or because they are
+constructors with different ranks and so will never be compared by this function.)
+-}
+byRank : (a -> Int) -> Ordering a -> Ordering a
+byRank rank withinRankOrdering =
+    byField rank |> breakTiesWith withinRankOrdering
+
+
+{-| Returns the main order unless it is `EQ`, in which case returns the tiebreaker.
+
+This function does for `Order`s what `breakTiesWith` does for `Ordering`s. It is
+useful in cases where you want to perform a cascading comparison of multiple pairs
+of values that are not wrapped in a container value, as happens when examining the
+individual fields of a constructor.
+-}
+ifStillTiedThen : Order -> Order -> Order
+ifStillTiedThen tiebreaker mainOrder =
+    case mainOrder of
+        EQ ->
+            tiebreaker
+
+        _ ->
+            mainOrder
+
+
+{-| Marker for functions provided to `byRank` to indicate that a given case
+has no possible rank conflicts.
+-}
+noConflicts : Order
+noConflicts =
+    EQ
 
 
 {-| Returns an ordering that reverses the input ordering.
