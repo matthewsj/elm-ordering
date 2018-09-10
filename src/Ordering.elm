@@ -126,7 +126,7 @@ the resulting ordering.
 -}
 byToString : Ordering a
 byToString =
-    byField toString
+    byField Debug.toString
 
 
 {-| Creates an ordering that orders items in the order given in the input list.
@@ -141,7 +141,7 @@ other and less than anything in the list.
             [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
 -}
 explicit : List a -> Ordering a
-explicit items x y =
+explicit elements x y =
     let
         scanForEither items =
             case items of
@@ -178,10 +178,10 @@ explicit items x y =
                 [] ->
                     GT
     in
-        if x == y then
-            EQ
-        else
-            scanForEither items
+    if x == y then
+        EQ
+    else
+        scanForEither elements
 
 
 {-| Produces an ordering that orders its elements using the natural ordering of the
