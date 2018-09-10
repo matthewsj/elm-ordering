@@ -62,12 +62,7 @@ sortCards =
 
 oneOf : List a -> Fuzzer a
 oneOf items =
-    case Fuzz.frequency (List.map (\x -> ( 1, Fuzz.constant x )) items) of
-        Ok fuzzer ->
-            fuzzer
-
-        Err str ->
-            Debug.crash str
+    Fuzz.frequency (List.map (\x -> ( 1, Fuzz.constant x )) items)
 
 
 suite : Fuzzer Suite
@@ -293,14 +288,14 @@ all =
                             categorize fst sorted
 
                         secondsSorted =
-                            List.map (\triples -> Ordering.isOrdered Ordering.natural (List.map snd triples))
+                            List.map (\triples_ -> Ordering.isOrdered Ordering.natural (List.map snd triples_))
                                 categorizedByFirst
 
                         categorizedByFirstAndSecond =
                             categorize (\( x, y, _ ) -> ( x, y )) sorted
 
                         thirdsSorted =
-                            List.map (\triples -> Ordering.isOrdered Ordering.natural (List.map thd triples))
+                            List.map (\triples_ -> Ordering.isOrdered Ordering.natural (List.map thd triples_))
                                 categorizedByFirstAndSecond
                     in
                         Expect.true "Something wasn't sorted"
@@ -313,8 +308,8 @@ all =
             let
                 jokerCardOrdering =
                     Ordering.byRank
-                        (\card ->
-                            case card of
+                        (\card_ ->
+                            case card_ of
                                 NormalCard _ _ ->
                                     1
 
