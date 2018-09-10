@@ -219,7 +219,6 @@ field selected by the given function.
         == [ { value = King, suite = Hearts }
            , { value = Two, suite = Spades }
            ]
-
 -}
 byFieldWith : Ordering b -> (a -> b) -> Ordering a
 byFieldWith compareField extractField x y =
