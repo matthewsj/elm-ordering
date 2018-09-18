@@ -2,7 +2,6 @@ module Ordering
     exposing
         ( Ordering
         , natural
-        , byToString
         , byFieldWith
         , byField
         , byRank
@@ -62,7 +61,7 @@ to sort a deck of cards you can use `cardOrdering` directly:
 @docs Ordering
 
 # Construction
-@docs natural, byToString, explicit, byField, byFieldWith, byRank, noConflicts, ifStillTiedThen
+@docs natural, explicit, byField, byFieldWith, byRank, noConflicts, ifStillTiedThen
 
 # Composition
 @docs breakTiesWith, reverse
@@ -117,16 +116,6 @@ fromLessThan lt x y =
         GT
     else
         EQ
-
-
-{-| Ordering that orders values lexicographically by their string representation.
-This ordering can be useful for prototyping but it's usually better to replace it
-with a hand-made ordering for serious use since `byToString` gives no way of tuning
-the resulting ordering.
--}
-byToString : Ordering a
-byToString =
-    byField Debug.toString
 
 
 {-| Creates an ordering that orders items in the order given in the input list.

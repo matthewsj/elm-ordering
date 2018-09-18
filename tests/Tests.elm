@@ -239,12 +239,6 @@ all =
                     in
                         Expect.equal orderedXCoords xCoordsOfOrderedPoints
             ]
-        , describe "byToString"
-            [ test "orders values" <|
-                \() ->
-                    List.sortWith Ordering.byToString [ Ace, King, Queen, Two, Three ]
-                        |> Expect.equal [ Ace, King, Queen, Three, Two ]
-            ]
         , describe "reverse"
             [ fuzz (Fuzz.list point) "Reversing the result of reverse sort is the same as the forward sort" <|
                 \points ->
