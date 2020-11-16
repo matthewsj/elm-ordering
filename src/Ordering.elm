@@ -256,11 +256,11 @@ you could use `byRank` to sort all the normal cards before the jokers like so:
     jokerCardOrdering : Ordering JokerCard
     jokerCardOrdering =
         Ordering.byRank
-            (card ->
+            (\card ->
                  case card of
                      NormalCard _ _ -> 1
                      Joker -> 2)
-            (x y ->
+            (\x y ->
                  case (x, y) of
                      (NormalCard v1 s1, NormalCard v2 s2) ->
                          suiteOrdering s1 s2
